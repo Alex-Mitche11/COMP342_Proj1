@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class StopAndWaitARQ_Receiver {
@@ -54,8 +55,17 @@ public class StopAndWaitARQ_Receiver {
                 BISYNCPacket packet = new BISYNCPacket(packetData, true);
 
                 // TODO: Task 2.b, Your code below
-
-
+                if(packet.fromPacket(packetData)){
+                    // Add byte array of data from the packet to received data
+                    receivedData.addAll(Arrays.asList(packet.getData()));
+                    //send ack
+                    out.writeChar(ACK);
+                    if(isLastPacket){ //check if last packet than jump out the while loop
+                        running = false;
+                    }
+                }else{
+                    out.writeChar(NAK);
+                }
 
 
             } catch (IOException e) {
