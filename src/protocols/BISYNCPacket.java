@@ -33,14 +33,54 @@ public class BISYNCPacket {
     }
 
     private byte[] byteStuff(byte[] data) {
-        // TODO: Task 1.a, your code below
-        byte[] stuffed = new byte[1];
+        // DONE: Task 1.a, your code below
+
+        byte[] stuffed = new byte[data.length];
+
+        System.arraycopy(data, 0, stuffed, 0, data.length);
+
+        for (int i = 0; i < stuffed.length; i++) {
+            if (stuffed[i] == STX || stuffed[i] == ETX || stuffed[i] == DLE || stuffed[i] == SYN) { // Check for special Chars
+                byte[] temp = new byte[stuffed.length + 1]; //Temp array to mess around with before saving to stuffed
+                System.arraycopy(stuffed, 0, temp, 0, i);
+                temp[i] = DLE; // stuff DEL into array
+                System.arraycopy(stuffed, i, temp, i + 1, stuffed.length - i); // copy rest array after byte stuffed
+
+                //Make stuffed +1 longer aswell as temp
+                stuffed = new byte[temp.length + 1];
+                //Save temp to stuffed, Might be more efficient way to do this, but I didn't want to mess with pntrs and context
+                System.arraycopy(temp, 0, stuffed, 0, stuffed.length);
+                i++;
+            }
+        }
         return stuffed;
     }
 
     private byte[] byteUnstuff(byte[] stuffedData) {
         // TODO: Task 1.b, your code below
-        byte[] unstuffed = new byte[1];
+
+        //Copy stuffedData to unstuffed array to get unstuffed
+        byte[] unstuffed = new byte[stuffedData.length];
+        System.arraycopy(stuffedData, 0, unstuffed, 0, stuffedData.length);
+
+        int len = stuffedData.length; // len varibale changes size if a stuffed byte is removed
+
+        for (int i = 0; i < len; i++) {
+            if(unstuffed[i] == DLE){ // check if a DLE is stuffed in there
+                byte[] temp = new byte[unstuffed.length - 1]; // Create temp array to mess around with
+
+                //Copy the unstuffed array up to but not including the DLE to the temp array
+                System.arraycopy(unstuffed, 0, temp, 0, i);
+                //Copy the rest of the unstuffed array past the byte stuffed DEL to the temp array
+                System.arraycopy(unstuffed, i - 1, temp, i, temp.length - i);
+
+                // Copy new temp array to unstuffed array ready for the next iteration
+                unstuffed = new byte[temp.length];
+                System.arraycopy(temp, 0, unstuffed, 0, temp.length);
+
+                len--; //remove from len so not to get index out of bound
+            }
+        }
         return unstuffed;
     }
 
