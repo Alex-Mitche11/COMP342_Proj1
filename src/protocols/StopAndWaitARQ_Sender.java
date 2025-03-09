@@ -22,30 +22,35 @@ public class StopAndWaitARQ_Sender {
 
             // TODO: Task 2.a, Your code below
             // notice: use sender.sendPacketWithError() to send out packet
-            if(currSeqNumber > 254){
+
+            //ALEX ADDED 3/9/25
+            if(currSeqNumber > 254){ // rotate sequence number through 0 - 255
                 currSeqNumber = 0;
             }else {
                 currSeqNumber++;
             }
+
             try {
+                //send packet with a chance to have an error
                 sender.sendPacketWithError(packet, currSeqNumber, isLastPacket);
-            } catch (IOException e) {
+
+            } catch (IOException e) { //Error Handling
                 e.printStackTrace();
                 System.out.println("ERROR SENDING PACKET in StopAndWaitARQ_Sender.transmit()");
                 throw new RuntimeException(e);
             }
-            //need to wait for ack or nck
 
+            //need to wait for ack or nck
             try {
                 if( sender.waitForResponse()[0] != ACK){
-                    i--;
+                    i--; //if NO ACK recieved Then send the packet again
                 }
-            } catch (IOException e) {
+            } catch (IOException e) { //error handleing
                 e.printStackTrace();
                 System.out.println("ERROR RECIVING ACK or NCK in StopAndWaitARQ_Sender.transmit()");
                 throw new RuntimeException(e);
             }
-
+            //END OF ADDITION 3/9/25
 
 
         }

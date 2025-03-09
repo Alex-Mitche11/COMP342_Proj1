@@ -55,7 +55,9 @@ public class StopAndWaitARQ_Receiver {
                 BISYNCPacket packet = new BISYNCPacket(packetData, true);
 
                 // TODO: Task 2.b, Your code below
-                if(packet.fromPacket(packetData)){
+
+                //ALEX ADDED 3/9/25
+                if(packet.fromPacket(packetData)){ //replaces packet object with unstuffed data only if isvalid()
                     // Add byte array of data from the packet to received data
                     receivedData.addAll(Arrays.asList(packet.getData()));
                     //send ack
@@ -63,9 +65,10 @@ public class StopAndWaitARQ_Receiver {
                     if(isLastPacket){ //check if last packet than jump out the while loop
                         running = false;
                     }
-                }else{
+                }else{// if not valid send a NAK
                     out.writeChar(NAK);
                 }
+                //END of addition 3/9/25
 
 
             } catch (IOException e) {
