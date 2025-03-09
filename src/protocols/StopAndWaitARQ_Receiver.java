@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class StopAndWaitARQ_Receiver {
@@ -55,7 +56,19 @@ public class StopAndWaitARQ_Receiver {
 
                 // TODO: Task 2.b, Your code below
 
-
+                //ALEX ADDED 3/9/25
+                if(packet.fromPacket(packetData)){ //replaces packet object with unstuffed data only if isvalid()
+                    // Add byte array of data from the packet to received data
+                    receivedData.addAll(Arrays.asList(packet.getData()));
+                    //send ack
+                    out.writeChar(ACK);
+                    if(isLastPacket){ //check if last packet than jump out the while loop
+                        running = false;
+                    }
+                }else{// if not valid send a NAK
+                    out.writeChar(NAK);
+                }
+                //END of addition 3/9/25
 
 
             } catch (IOException e) {
