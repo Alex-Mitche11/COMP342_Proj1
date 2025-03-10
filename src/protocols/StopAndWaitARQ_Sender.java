@@ -42,8 +42,14 @@ public class StopAndWaitARQ_Sender {
 
             //need to wait for ack or nck
             try {
-                if( sender.waitForResponse()[0] != ACK){
-                    i--; //if NO ACK recieved Then send the packet again
+                char[] response = sender.waitForResponse();
+                if( response[0] != ACK){
+                    // Haddon addition 3/10
+                    System.out.println("Error encountered, received nak");
+                    currSeqNumber = response[1];
+                    System.out.println("frame number: " + currSeqNumber);
+                    i--;
+                    // END addition 3/10
                 }
             } catch (IOException e) { //error handleing
                 e.printStackTrace();
