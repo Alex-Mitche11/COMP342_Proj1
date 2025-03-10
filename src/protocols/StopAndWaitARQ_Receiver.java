@@ -62,11 +62,17 @@ public class StopAndWaitARQ_Receiver {
                     receivedData.addAll(Arrays.asList(packet.getData()));
                     //send ack
                     out.writeChar(ACK);
+                    // Haddon addition 3/10
+                    totalPacketsReceived = (totalPacketsReceived + 1) % 256;
+                    out.writeChar((char)totalPacketsReceived);
+                    // end addition 3/10
                     if(isLastPacket){ //check if last packet than jump out the while loop
                         running = false;
                     }
                 }else{// if not valid send a NAK
                     out.writeChar(NAK);
+                    out.writeChar((char)totalPacketsReceived);
+                    System.out.println("bad packet, sending NAK and " + totalPacketsReceived);
                 }
                 //END of addition 3/9/25
 
