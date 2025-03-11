@@ -6,10 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class SelectiveAndRepeatARQ_Receiver {
 
@@ -77,8 +74,30 @@ public class SelectiveAndRepeatARQ_Receiver {
                 BISYNCPacket packet = new BISYNCPacket(packetData, true);
 
                 // TODO: Task 3.b, Your code below
+                if(packet.fromPacket(packetData)){
+                    // check if packet is in order
+                    if(packetIndex == totalPacketsReceived) { // next in order packet
+                        receivedData.add((packet.getData()));
+                        // send ACK
+                        out.writeChar(ACK);
+                        totalPacketsReceived = (totalPacketsReceived + 1) % 256;
+                        // advance sliding window
+                        out.writeChar((char) totalPacketsReceived);
+                        if (isLastPacket) {
+                            running = false;
+                        }
+                    }
+                    else {//received out of order packet, can store it somehow
+                        // send NAK with number we need
+                        out.writeChar(NAK);
+                        out.writeChar((char)totalPacketsReceived);
 
-
+                    }
+                }
+                else{ // not valid, send NAK
+                    out.writeChar(NAK);
+                    out.writeChar((char)totalPacketsReceived);
+                }
 
             } catch (IOException e) {
                 if (running) {

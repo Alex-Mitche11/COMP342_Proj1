@@ -16,6 +16,7 @@ public class SelectiveAndRepeatARQ_Sender {
     private int winBase = 0;
     private int winSize = 0;
     private char currFrame = 0;
+    private int frameNum = 0;
 
     public SelectiveAndRepeatARQ_Sender(NetworkSender sender, int winSize){
         this.sender = sender;
@@ -41,25 +42,37 @@ public class SelectiveAndRepeatARQ_Sender {
 
         // TODO: Task 3.a, Your code below
 
+        // set sliding window
+        winSize = 4;
         while(!finished){
             try {
                 // notice: use sender.sendPacketWithLost() to send out packet
                 // but, to resend the lost packet after receiving NAK,
                 // use sender.sendPacket(), otherwise, the receiver may not get the resent packet and get stuck
                 // also, for the last packet, use sender.sendPacket(), otherwise, it will get stuck
-                for (int i = 0; i < packets.size(); i++) {
-                    BISYNCPacket packet = packets.get(i);
-                    boolean isLastPacket = (i == packets.size()-1);
+
+                    BISYNCPacket packet = packets.get(frameNum);
+                    finished = (frameNum == packets.size()-1); // check to see if this is the last packet
 
 
-                    if(currFrame > 254){
-                        currFrame = 0;
+                    sender.sendPacketWithLost(packet, (char) frameNum,finished);
+
+
+
+                    // wait for ACK/NACK
+                    response = sender.waitForResponse();
+                    if(response[0] != ACK){ // error occurred, need to resend frame and not move window
+                        // need to resend packet
+                        char toSend = response[1];
+                        packet = packets.get(toSend);
+                        sender.sendPacket(packet.getData(),toSend,finished);
+                        finished = false; // CHECK TO SEE IF THIS IS RIGHT
                     }
-                    else{
-                        currFrame++;
+                    else { // no error, advance sliding window
+                        frameNum++; // increment frame number
+                        // advance sliding window
+                        winBase++;
                     }
-                    sender.sendPacketWithError(packet,currFrame,isLastPacket);
-                }
 
 
 
