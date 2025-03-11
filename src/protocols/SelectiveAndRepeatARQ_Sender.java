@@ -15,6 +15,7 @@ public class SelectiveAndRepeatARQ_Sender {
     private final NetworkSender sender;
     private int winBase = 0;
     private int winSize = 0;
+    private char currFrame = 0;
 
     public SelectiveAndRepeatARQ_Sender(NetworkSender sender, int winSize){
         this.sender = sender;
@@ -37,21 +38,35 @@ public class SelectiveAndRepeatARQ_Sender {
 
         Boolean finished = false;
 
+
         // TODO: Task 3.a, Your code below
 
         while(!finished){
-            //try {
+            try {
                 // notice: use sender.sendPacketWithLost() to send out packet
                 // but, to resend the lost packet after receiving NAK,
                 // use sender.sendPacket(), otherwise, the receiver may not get the resent packet and get stuck
                 // also, for the last packet, use sender.sendPacket(), otherwise, it will get stuck
+                for (int i = 0; i < packets.size(); i++) {
+                    BISYNCPacket packet = packets.get(i);
+                    boolean isLastPacket = (i == packets.size()-1);
+
+
+                    if(currFrame > 254){
+                        currFrame = 0;
+                    }
+                    else{
+                        currFrame++;
+                    }
+                    sender.sendPacketWithError(packet,currFrame,isLastPacket);
+                }
 
 
 
-            //}catch (IOException e){
-            //    System.err.println("Error transmitting packet: " + e.getMessage());
-            //    return;
-            //}
+            }catch (IOException e){
+              System.err.println("Error transmitting packet: " + e.getMessage());
+               return;
+            }
         }
     }
 
