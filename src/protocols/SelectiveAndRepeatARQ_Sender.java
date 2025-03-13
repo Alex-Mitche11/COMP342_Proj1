@@ -15,7 +15,6 @@ public class SelectiveAndRepeatARQ_Sender {
     private final NetworkSender sender;
     private int winBase = 0;
     private int winSize = 0;
-    private char currFrame = 0;
     private int frameNum = 0;
 
     public SelectiveAndRepeatARQ_Sender(NetworkSender sender, int winSize){
@@ -43,7 +42,7 @@ public class SelectiveAndRepeatARQ_Sender {
         // TODO: Task 3.a, Your code below
 
         // set sliding window
-        winSize = 4;
+
         while(!finished){
             try {
                 // notice: use sender.sendPacketWithLost() to send out packet
@@ -51,31 +50,31 @@ public class SelectiveAndRepeatARQ_Sender {
                 // use sender.sendPacket(), otherwise, the receiver may not get the resent packet and get stuck
                 // also, for the last packet, use sender.sendPacket(), otherwise, it will get stuck
 
-                    BISYNCPacket packet = packets.get(frameNum);
-                    finished = (frameNum == packets.size()-1); // check to see if this is the last packet
-
-
-                    sender.sendPacketWithLost(packet, (char) frameNum,finished);
-
-
-
-                    // wait for ACK/NACK
-                    response = sender.waitForResponse();
-                    if(response[0] != ACK){ // error occurred, need to resend frame and not move window
-                        // need to resend packet
-                        char toSend = response[1];
-                        packet = packets.get(toSend);
-                        sender.sendPacket(packet.getData(),toSend,finished);
-                        finished = false; // CHECK TO SEE IF THIS IS RIGHT
+                int lastIndex = winBase + winSize;
+                if(lastIndex > packets.size()) {
+                    lastIndex = packets.size(); // for smaller data transmission
+                }
+                    // SEND OUT NEXT PACKETS
+                for (int i = winBase; i < lastIndex; i++) {
+                    BISYNCPacket packet = packets.get(i); // get the next packet
+                    finished = (winBase == packets.size() - 1); // check to see if this is the last packet
+                    if (finished) { // send last packet
+                        sender.sendPacket(packet.getPacket(), (char) winBase, finished);
+                    } else {
+                        sender.sendPacketWithLost(packet, (char) winBase, finished); // send with error
                     }
-                    else { // no error, advance sliding window
-                        frameNum++; // increment frame number
-                        // advance sliding window
-                        winBase++;
-                    }
-
-
-
+                }
+                // wait for response
+                response = sender.waitForResponse();
+                if (response[0] != ACK) { // error occurred, need to resend frame and not move window
+                    // need to resend packet
+                    char toSend = response[1];
+                    BISYNCPacket packet = packets.get(toSend);
+                    sender.sendPacket(packet.getPacket(), toSend, finished); // send packet again with no error
+                } else if (Character.getNumericValue(response[1]) == winBase) { // no error, advance sliding window
+                    System.out.println(Character.getNumericValue(response[1]));
+                    winBase++;
+                }
             }catch (IOException e){
               System.err.println("Error transmitting packet: " + e.getMessage());
                return;
