@@ -19,7 +19,9 @@ public class SelectiveAndRepeatARQ_Receiver {
     private ServerSocket serverSocket;
     private volatile boolean running;
     private final List<byte[]> receivedData;
-    private int totalPacketsReceived;
+    private int totalPacketsReceived = 0;
+    private int winBase = 0;
+    private int winSize;
 
     public SelectiveAndRepeatARQ_Receiver(int port, int winSize, String outputFile){
         this.port = port;
@@ -27,6 +29,7 @@ public class SelectiveAndRepeatARQ_Receiver {
         this.running = false;
         this.receivedData = new ArrayList<>();
         this.totalPacketsReceived = 0;
+        this.winSize = winSize;
     }
 
     private void ensureCapacity(int N) {
@@ -66,7 +69,7 @@ public class SelectiveAndRepeatARQ_Receiver {
                 char packetIndex = in.readChar();
                 boolean isLastPacket = in.readBoolean();
 
-                System.out.println("packetIndex : " + (int)(packetIndex) );
+                System.out.println("packetIndex : " + (int)(packetIndex));
 
                 // Read packet data
                 byte[] packetData = new byte[packetLength];
@@ -74,30 +77,36 @@ public class SelectiveAndRepeatARQ_Receiver {
                 BISYNCPacket packet = new BISYNCPacket(packetData, true);
 
                 // TODO: Task 3.b, Your code below
-                if(packet.fromPacket(packetData)){
-                    // check if packet is in order
-                    if(packetIndex == totalPacketsReceived) { // next in order packet
+
+                // if the packet received is in order
+                if(packetIndex== winBase){
+                    if(!flags[packetIndex]) { // have not received packet yet
+                        flags[packetIndex] = true; // received this packet now
                         receivedData.add((packet.getData()));
-                        // send ACK
                         out.writeChar(ACK);
-                        totalPacketsReceived = (totalPacketsReceived + 1) % 256;
-                        // advance sliding window
-                        out.writeChar((char) totalPacketsReceived);
-                        if (isLastPacket) {
-                            running = false;
+                        out.writeChar((winBase + 1) % 256);
+                        winBase++; // advance sliding window
+                    }
+                }
+                else{// adding out of order packet
+                    // add packet at correct index
+                    if(!flags[packetIndex]) { // have not received packet yet
+                        flags[packetIndex] = true;
+                        receivedData.add(packetIndex, packet.getData());
+                    }
+                    // either way, send NAKs
+                    for (int i = winBase; i < packetIndex; i++) {
+                        if (!flags[i]) { // only send NAKs for the packets we don't have
+                            out.writeChar(NAK);
+                            out.writeChar(i);
                         }
                     }
-                    else {//received out of order packet, can store it somehow
-                        // send NAK with number we need
-                        out.writeChar(NAK);
-                        out.writeChar((char)totalPacketsReceived);
+                }
+                if(isLastPacket && packetIndex == winBase){ // we are done processing
+                    running = false;
+                }
+                totalPacketsReceived++;
 
-                    }
-                }
-                else{ // not valid, send NAK
-                    out.writeChar(NAK);
-                    out.writeChar((char)totalPacketsReceived);
-                }
 
             } catch (IOException e) {
                 if (running) {
@@ -105,7 +114,7 @@ public class SelectiveAndRepeatARQ_Receiver {
                 }
             }
         }
-        // finish receiving all the data
+         //finish receiving all the data
         System.out.println("receiver: finish receiving all packets, now save into file!");
         saveFile();
         stop();

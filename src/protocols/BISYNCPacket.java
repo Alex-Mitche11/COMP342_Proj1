@@ -49,7 +49,7 @@ public class BISYNCPacket {
                 //Make stuffed +1 longer aswell as temp
                 stuffed = new byte[temp.length + 1];
                 //Save temp to stuffed, Might be more efficient way to do this, but I didn't want to mess with pntrs and context
-                System.arraycopy(temp, 0, stuffed, 0, stuffed.length);
+                System.arraycopy(temp, 0, stuffed, 0, stuffed.length-1);
                 i++;
             }
         }

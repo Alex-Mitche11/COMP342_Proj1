@@ -17,12 +17,12 @@ public class MainReceiver {
 
         try {
             // 1. uncomment the code below to test Stop-and-Wait ARQ
-            StopAndWaitARQ_Receiver receiver = new StopAndWaitARQ_Receiver(PORT, OUTPUT_FILE);
-            receiver.start();
+//            StopAndWaitARQ_Receiver receiver = new StopAndWaitARQ_Receiver(PORT, OUTPUT_FILE);
+//            receiver.start();
 
             // 2. uncomment the code below to test Selective-and-Repeat ARQ
-            // SelectiveAndRepeatARQ_Receiver receiver = new SelectiveAndRepeatARQ_Receiver(PORT, 4, OUTPUT_FILE);
-            // receiver.start();
+             SelectiveAndRepeatARQ_Receiver receiver = new SelectiveAndRepeatARQ_Receiver(PORT, 4, OUTPUT_FILE);
+             receiver.start();
 
         } catch (Exception e) {
             System.err.println("Error in receiver: " + e.getMessage());
