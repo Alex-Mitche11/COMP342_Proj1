@@ -16,6 +16,7 @@ public class SelectiveAndRepeatARQ_Sender {
     private int winBase = 0;
     private int winSize = 0;
     private int frameNum = 0;
+    private Set<Integer> packetSent = new HashSet<>();
 
     public SelectiveAndRepeatARQ_Sender(NetworkSender sender, int winSize){
         this.sender = sender;
@@ -51,29 +52,42 @@ public class SelectiveAndRepeatARQ_Sender {
                 // also, for the last packet, use sender.sendPacket(), otherwise, it will get stuck
 
                 int lastIndex = winBase + winSize;
-                if(lastIndex > packets.size()) {
-                    lastIndex = packets.size(); // for smaller data transmission
+                if(lastIndex > N) {
+                    lastIndex = N; // for smaller data transmission
                 }
                     // SEND OUT NEXT PACKETS
                 for (int i = winBase; i < lastIndex; i++) {
                     BISYNCPacket packet = packets.get(i); // get the next packet
-                    finished = (winBase == packets.size() - 1); // check to see if this is the last packet
-                    if (finished) { // send last packet
-                        sender.sendPacket(packet.getPacket(), (char) winBase, finished);
-                    } else {
-                        sender.sendPacketWithLost(packet, (char) winBase, finished); // send with error
+                    finished = (winBase == N - 1); // check to see if this is the last packet
+                    char packetIndex = ((char) (i % 256)); // the packet index as a char
+                    if (i == N-1) { // send last packet / packet that has already been sent once
+                        //System.out.println("sending last packet: ");
+                        sender.sendPacket(packet.getPacket(), packetIndex, finished);
+                        if(finished)
+                            break;
+                    } else if(!packetSent.contains(i)){
+                        //System.out.println("packet: " + (int)packetIndex);
+                        sender.sendPacketWithLost(packet, packetIndex, finished); // send with error
                     }
                 }
+
                 // wait for response
                 response = sender.waitForResponse();
-                if (response[0] != ACK) { // error occurred, need to resend frame and not move window
-                    // need to resend packet
-                    char toSend = response[1];
-                    BISYNCPacket packet = packets.get(toSend);
-                    sender.sendPacket(packet.getPacket(), toSend, finished); // send packet again with no error
-                } else if (Character.getNumericValue(response[1]) == winBase) { // no error, advance sliding window
-                    System.out.println(Character.getNumericValue(response[1]));
-                    winBase++;
+                if (response[0] == ACK) { // need to move window up
+                    char index = response[1];
+
+                    winBase = getSeqNum(index); // advance to latest ACK
+                    for (int i = 0; i < index; i++) {
+                        packetSent.add(i);
+                    }
+                } else { // received NAK, need to resend packet
+                    char index = response[1];
+                    int toResend = getSeqNum(index);
+                    BISYNCPacket packet = packets.get(toResend);
+                    System.out.println("resending packet " + toResend);
+                    finished = (winBase == N - 1);
+                    sender.sendPacket(packet.getPacket(),index,finished);
+                    packetSent.add(toResend);
                 }
             }catch (IOException e){
               System.err.println("Error transmitting packet: " + e.getMessage());
@@ -82,4 +96,9 @@ public class SelectiveAndRepeatARQ_Sender {
         }
     }
 
+    private int getSeqNum(char index) {
+
+        // if numPackets < 256
+        return index;
+    }
 }

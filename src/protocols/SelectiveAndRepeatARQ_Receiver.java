@@ -77,15 +77,21 @@ public class SelectiveAndRepeatARQ_Receiver {
                 BISYNCPacket packet = new BISYNCPacket(packetData, true);
 
                 // TODO: Task 3.b, Your code below
+                // get correct sequence number - need to update for numPackets > 255
 
-                // if the packet received is in order
-                if(packetIndex== winBase){
+                if(packetIndex == winBase){// if the packet received is in order
                     if(!flags[packetIndex]) { // have not received packet yet
+                       // System.out.println("Received in order packet");
                         flags[packetIndex] = true; // received this packet now
                         receivedData.add((packet.getData()));
                         out.writeChar(ACK);
-                        out.writeChar((winBase + 1) % 256);
-                        winBase++; // advance sliding window
+                         // advance sliding window
+                        int i = winBase;
+                        while(flags[i] && i < N-1){
+                            winBase++; // can advance by 1, since sliding window in order
+                            i++;
+                        }
+                        out.writeChar((i + 1) % 256);
                     }
                 }
                 else{// adding out of order packet
@@ -96,18 +102,19 @@ public class SelectiveAndRepeatARQ_Receiver {
                     }
                     // either way, send NAKs
                     for (int i = winBase; i < packetIndex; i++) {
-                        if (!flags[i]) { // only send NAKs for the packets we don't have
+                        if (!flags[i] && !nak_packets.contains(i)) { // only send NAKs for the packets we don't have
+                            nak_packets.add(i);
                             out.writeChar(NAK);
-                            out.writeChar(i);
+                            out.writeChar(((i)%256));
+                            //System.out.println("Sending NAK for packet " + i);
                         }
                     }
                 }
+               // System.out.println("is last packet: " + isLastPacket + " packet index: " + packetIndex + " winbase: " + winBase);
                 if(isLastPacket && packetIndex == winBase){ // we are done processing
                     running = false;
                 }
                 totalPacketsReceived++;
-
-
             } catch (IOException e) {
                 if (running) {
                     System.err.println("Error handling client: " + e.getMessage());
