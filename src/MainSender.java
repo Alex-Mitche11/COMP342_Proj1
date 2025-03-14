@@ -46,14 +46,14 @@ public class MainSender {
             long startTime = System.currentTimeMillis();
 
             // 1. uncomment the code below to test Stop-and-Wait ARQ
-//                System.out.println("\nTesting Stop-and-Wait ARQ:");
-//                StopAndWaitARQ_Sender stopAndWait = new StopAndWaitARQ_Sender(sender);
-//                stopAndWait.transmit(packets);
+                System.out.println("\nTesting Stop-and-Wait ARQ:");
+                StopAndWaitARQ_Sender stopAndWait = new StopAndWaitARQ_Sender(sender);
+                stopAndWait.transmit(packets);
 
             // 2. uncomment the code below to test Selective-and-Repeat ARQ
-             System.out.println("\nTesting Selective-and-Repeat ARQ:");
-             SelectiveAndRepeatARQ_Sender selectRepeatSender = new SelectiveAndRepeatARQ_Sender(sender, 50);
-             selectRepeatSender.transmit(packets);
+//             System.out.println("\nTesting Selective-and-Repeat ARQ:");
+//             SelectiveAndRepeatARQ_Sender selectRepeatSender = new SelectiveAndRepeatARQ_Sender(sender, 50);
+//             selectRepeatSender.transmit(packets);
 
             long endTime = System.currentTimeMillis();
             double elapsedTime = (endTime - startTime) / 1000.0; // Convert milliseconds to seconds
