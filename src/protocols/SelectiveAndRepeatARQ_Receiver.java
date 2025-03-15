@@ -22,6 +22,8 @@ public class SelectiveAndRepeatARQ_Receiver {
     private int totalPacketsReceived = 0;
     private int winBase = 0;
     private int winSize;
+    private int overflowCounter = 0;
+    private int wrappedCounter = 0;
 
     public SelectiveAndRepeatARQ_Receiver(int port, int winSize, String outputFile){
         this.port = port;
@@ -68,7 +70,6 @@ public class SelectiveAndRepeatARQ_Receiver {
                 int packetLength = in.readInt();
                 char packetIndex = in.readChar();
                 boolean isLastPacket = in.readBoolean();
-
                 System.out.println("packetIndex : " + (int)(packetIndex));
 
                 // Read packet data
@@ -78,32 +79,42 @@ public class SelectiveAndRepeatARQ_Receiver {
 
                 // TODO: Task 3.b, Your code below
                 // get correct sequence number - need to update for numPackets > 255
+                int offset = 0;
+                int winBaseMod = winBase % 256;
+                if(winBaseMod > packetIndex){
+                    offset = (256-winBaseMod) + packetIndex;
+                }
+                else if(packetIndex > winBaseMod){
+                    offset = packetIndex - winBaseMod;
+                }
+                int trueIndex = winBase + offset;
 
-                if(packetIndex == winBase){// if the packet received is in order
-                    if(!flags[packetIndex]) { // have not received packet yet
+
+                System.out.println("true index: " + trueIndex);
+                if(trueIndex == winBase){// if the packet received is in order
+                    if(!flags[trueIndex]){ // have not received packet yet
                        // System.out.println("Received in order packet");
-                        flags[packetIndex] = true; // received this packet now
-                        receivedData.add((packet.getData()));
+                        flags[trueIndex] = true; // received this packet now
+                        receivedData.add(trueIndex,(packet.getData())); // adds at the correct index no matter what
                         out.writeChar(ACK);
                          // advance sliding window
-                        int i = winBase;
-                        while(flags[i] && i < N-1){
+
+                        while(flags[winBase] && winBase < N-1 ){
                             winBase++; // can advance by 1, since sliding window in order
-                            i++;
                         }
-                        out.writeChar((i + 1) % 256);
+                        out.writeChar((winBase + 1) % 256);
                     }
                 }
                 else{// adding out of order packet
                     // add packet at correct index
-                    if(!flags[packetIndex]) { // have not received packet yet
-                        flags[packetIndex] = true;
-                        receivedData.add(packetIndex, packet.getData());
+                    if(!flags[trueIndex]) { // have not received packet yet
+                        flags[trueIndex] = true;
+                        System.out.println("adding packet at " + trueIndex);
+                        receivedData.add(trueIndex, packet.getData());
                     }
                     // either way, send NAKs
-                    for (int i = winBase; i < packetIndex; i++) {
-                        if (!flags[i] && !nak_packets.contains(i)) { // only send NAKs for the packets we don't have
-                            nak_packets.add(i);
+                    for (int i = winBase; i < trueIndex; i++) {
+                        if (!flags[i]) { // only send NAKs for the packets we don't have
                             out.writeChar(NAK);
                             out.writeChar(((i)%256));
                             //System.out.println("Sending NAK for packet " + i);
@@ -111,8 +122,13 @@ public class SelectiveAndRepeatARQ_Receiver {
                     }
                 }
                // System.out.println("is last packet: " + isLastPacket + " packet index: " + packetIndex + " winbase: " + winBase);
-                if(isLastPacket && packetIndex == winBase){ // we are done processing
-                    running = false;
+                for (Boolean flag : flags) {
+                    if (!flag) { // have not received all packets
+                        running = true;
+                        break;
+                    } else {
+                        running = false;
+                    }
                 }
                 totalPacketsReceived++;
             } catch (IOException e) {
@@ -162,6 +178,9 @@ public class SelectiveAndRepeatARQ_Receiver {
         } catch (IOException e) {
             System.err.println("Error closing server: " + e.getMessage());
         }
+    }
+    private int getSeqNum(char index) {
+        return index + 256*wrappedCounter;
     }
 }
 
