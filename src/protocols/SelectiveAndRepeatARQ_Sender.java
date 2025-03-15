@@ -16,7 +16,6 @@ public class SelectiveAndRepeatARQ_Sender {
     private int winBase = 0;
     private int winSize = 0;
     private int frameNum = 0;
-    private int wrappedCounter = 0;
     private Set<Integer> packetSent = new HashSet<>();
     private Set<Integer> packetSentTwice = new HashSet<>();
     private boolean allSent = false; // have not sent all the packets yet
@@ -71,10 +70,7 @@ public class SelectiveAndRepeatARQ_Sender {
                         } else if (!packetSent.contains(i)) {
                             sender.sendPacketWithLost(packet, packetIndex, finished);
                             packetSent.add(i);
-                            if(i % 256 == 255){
-                                wrappedCounter++;
-                                System.out.println("incrementing wrapper counter: " + wrappedCounter);
-                            }
+                            frameNum++;
                         }
                     }
                 }
@@ -83,27 +79,48 @@ public class SelectiveAndRepeatARQ_Sender {
                 response = sender.waitForResponse();
                 if (response[0] == ACK) { // need to move window up
                     char index = response[1];
-                    winBase = getSeqNum((index)); // advance to latest ACK
+                    winBase = getSeqNum((index),N); // advance to latest ACK
                     System.out.println("got ack " + winBase);
                 } else { // received NAK, need to resend packet
                     char index = response[1];
-                    int toResend = getSeqNum(index);
+                    int toResend = getSeqNum(index,N);
 
-                    if(!packetSentTwice.contains(toResend)) {
+                    if(!packetSentTwice.contains(toResend)) { // we have not resent the packet yet
                         BISYNCPacket packet = packets.get(toResend);
                         System.out.println("resending packet " + toResend);
                         sender.sendPacket(packet.getPacket(), index, false);
                         packetSentTwice.add(toResend);
                     }
                 }
+                finished = (winBase == N - 1); // check to see if this is the last packet
             }catch (IOException e){
               System.err.println("Error transmitting packet: " + e.getMessage());
                return;
             }
         }
     }
+    private int getSeqNum(char index,int N) {
+//        int diff = index - (winBase % 256);
+//        if(diff < -128){
+//            diff+= 256;
+//        }
+//        else if(diff > 128){
+//            diff -= 256;
+//        }
+//        int trueIndex = winBase + diff;
+        int offset = 0;
+        int winBaseMod = winBase % 256;
+        if(winBaseMod > index){
+            offset = (256-winBaseMod) + index;
+        }
+        else if(index > winBaseMod){
+            offset = index - winBaseMod;
+        }
+        int trueIndex = winBase + offset;
 
-    private int getSeqNum(char index) {
-        return index;
+        if(trueIndex > N){
+            trueIndex = N;
+        }
+        return trueIndex;
     }
 }

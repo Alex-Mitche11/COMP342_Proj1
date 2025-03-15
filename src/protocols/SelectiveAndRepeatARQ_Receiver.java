@@ -88,9 +88,9 @@ public class SelectiveAndRepeatARQ_Receiver {
                     offset = packetIndex - winBaseMod;
                 }
                 int trueIndex = winBase + offset;
+                //int trueIndex = (winBase + ((int) packetIndex - winBase + 256) % 256) % 256;
 
-
-                System.out.println("true index: " + trueIndex);
+                //System.out.println("true index: " + trueIndex + " winbase: " + winBase);
                 if(trueIndex == winBase){// if the packet received is in order
                     if(!flags[trueIndex]){ // have not received packet yet
                        // System.out.println("Received in order packet");
@@ -98,11 +98,10 @@ public class SelectiveAndRepeatARQ_Receiver {
                         receivedData.add(trueIndex,(packet.getData())); // adds at the correct index no matter what
                         out.writeChar(ACK);
                          // advance sliding window
-
                         while(flags[winBase] && winBase < N-1 ){
                             winBase++; // can advance by 1, since sliding window in order
                         }
-                        out.writeChar((winBase + 1) % 256);
+                        out.writeChar((winBase) % 256);
                     }
                 }
                 else{// adding out of order packet
@@ -114,9 +113,10 @@ public class SelectiveAndRepeatARQ_Receiver {
                     }
                     // either way, send NAKs
                     for (int i = winBase; i < trueIndex; i++) {
-                        if (!flags[i]) { // only send NAKs for the packets we don't have
+                        if (!flags[i] && !nak_packets.contains(i)) { // only send NAKs for the packets we don't have
                             out.writeChar(NAK);
                             out.writeChar(((i)%256));
+                            nak_packets.add(i);
                             //System.out.println("Sending NAK for packet " + i);
                         }
                     }
