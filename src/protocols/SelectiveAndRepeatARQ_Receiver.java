@@ -88,19 +88,21 @@ public class SelectiveAndRepeatARQ_Receiver {
                     offset = packetIndex - winBaseMod;
                 }
                 int trueIndex = winBase + offset;
-                //int trueIndex = (winBase + ((int) packetIndex - winBase + 256) % 256) % 256;
 
                 //System.out.println("true index: " + trueIndex + " winbase: " + winBase);
                 if(trueIndex == winBase){// if the packet received is in order
                     if(!flags[trueIndex]){ // have not received packet yet
                        // System.out.println("Received in order packet");
                         flags[trueIndex] = true; // received this packet now
-                        receivedData.add(trueIndex,(packet.getData())); // adds at the correct index no matter what
+                        System.out.println("adding in order packet at " + trueIndex);
+                        receivedData.set(trueIndex, (packet.getData())); // adds at the correct index no matter what
                         out.writeChar(ACK);
                          // advance sliding window
-                        while(flags[winBase] && winBase < N-1 ){
+                        while(flags[winBase] && winBase < N-1){
                             winBase++; // can advance by 1, since sliding window in order
                         }
+                        // COULD BE WRONG
+
                         out.writeChar((winBase) % 256);
                     }
                 }
@@ -108,8 +110,8 @@ public class SelectiveAndRepeatARQ_Receiver {
                     // add packet at correct index
                     if(!flags[trueIndex]) { // have not received packet yet
                         flags[trueIndex] = true;
-                        System.out.println("adding packet at " + trueIndex);
-                        receivedData.add(trueIndex, packet.getData());
+                        System.out.println("adding out of order packet at " + trueIndex);
+                        receivedData.set(trueIndex, packet.getData());
                     }
                     // either way, send NAKs
                     for (int i = winBase; i < trueIndex; i++) {
